@@ -2,10 +2,10 @@
 # Reactor is packed with solid catalyst pellets which contains catalysts that convert reactants into products
 # It considers mass transfer limitation in both external diffusion as well as internal diffusion in the porous structure
 
-# A --> product
+# A --> product + other product
 
 # Information about solid pellets
-pellet_size = 0.004     # diameter
+pellet_size = 0.003     # diameter, m
 D_e = 2.66e-8           # effective diffusion coefficient, m2/s
 bed_porosity = 0.4      # bed porosity
 pellet_density = 2e6    # density of solid pellets, g/m3
@@ -13,20 +13,24 @@ S_a = 400.0             # internal surface area of the pellet, m2/g
 
 # Inlet gas condition
 P = 500e3               # pressure of the inlet gas, Pa
-T = 523.                # temperature, K
+T = 573.                # temperature, K
 R = 8.314               # universal gas constant, m3Pa/molK
 u = 3.0                 # flow rate, m/s
 
+# External mass transfer coefficient
+kcac = 2.0e-2
+
 # Information about the reaction
-n = 2.                  # second order w.r.t. reactant concentration
-k = 5e-9                # rate constant
+n = 1.                  # order of the reaction w.r.t. reactant conc, 1=first order
+k = 5e-8                # rate constant, unit changes with order of reaction
 
 
 import math
 import numpy
+import matplotlib.pyplot
 
 def inlet_gas_conc(R, T, P):
-    """Inlet concentration of gas"""
+    """Inlet concentration of gas based on ideal gas law"""
     return P/(R*T)
 
 def thiele_modulus(pellet_density, S_a, inlet_gas_conc, D_e, k, n):
@@ -37,40 +41,66 @@ def internal_effectiveness_factor(n, thiele_modulus):
     """Return internal effectiveness factor given the reaction order and thiele modulus"""
     return math.sqrt(2./(n+1))*3./thiele_modulus
 
-def ohm():
+def overall_effectiveness_factor(internal_effectiveness_factor, kcac, S_a, pellet_density, k):
     """Return the overall effectiveness factor"""
-    return internal_effectiveness_factor    # If the internal factor is very small
+    a = internal_effectiveness_factor * k * S_a * pellet_density / kcac
+    return internal_effectiveness_factor / (1 + internal_effectiveness_factor * a)   
 
-def packedbed_length(u, inlet_gas_conc, ohm, k, S_a, pellet_density, X):
+def packedbed_length(n, u, inlet_gas_conc, ohm, k, S_a, pellet_density, X):
     """Return the length of packed bed"""
-    L = u/(inlet_gas_conc*ohm*k*S_a*pellet_density)*((1/(1-X)) - 1)
+    if n == 1:
+        L = u/(ohm*pellet_density*k*S_a)*math.log(1/(1-X))
+    elif n == 2:
+        L = u/(inlet_gas_conc*ohm*k*S_a*pellet_density)*((1/(1-X)) - 1)
+    else:
+        L = "unknown"
     return "%e" %L
 
 def packedbed_conversion():
     """Return the conversion achieveable of the packed bed"""
-    pass        # Need to derive this
+    pass        # still working on this
+    
+def deactivation():
+    pass
+
+def effective_diffusion_coefficient():
+    """Return the effective diffusion coefficient of the catalytic system"""
+    pass
+
 
 # Specify the desired conversion
-X = 0.8
+X = 0.9
 
 # Generate results
 gconc = inlet_gas_conc(R, T, P)
 thiele = thiele_modulus(pellet_density, S_a, gconc, D_e, k, n)
-pi = internal_effectiveness_factor(n, thiele)
+phi = internal_effectiveness_factor(n, thiele)
+ohm = overall_effectiveness_factor(phi, kcac, S_a, pellet_density, k)
+l = packedbed_length(n, u, gconc, ohm, k, S_a, pellet_density, X)
 
-print gconc
-print thiele
-print pi
-l = packedbed_length(u, gconc, pi, k, S_a, pellet_density, X)
-print l  
+print "The inlet concentration is", gconc
+print "Thiele modulus is", thiele
+print "The internal effectiveness factor is", phi
+print "The overall effectiveness factor is", ohm
+print "The length of packed bed is", l  
 
 
-# Varying flow rate to determine the length required
+# Varying flow rate and conversion to determine the length required
 u = [1.0, 2.0, 3.0, 5.0, 10.0]  # in m/s
-l = numpy.zeros(5)
+X = [0.6, 0.7, 0.8, 0.9]        # conversion
+l = numpy.zeros((len(u), len(X)))
 for i in range(len(u)):
-    l[i] = packedbed_length(u[i], gconc, pi, k, S_a, pellet_density, X)
+    for j in range(len(X)):
+        l[i][j] = packedbed_length(n, u[i], gconc, ohm, k, S_a, pellet_density, X[j])
 print l # in m
-# The length required is increasing as there are more reactants flow in
 
+# Generating plot
+def plot_length():
+    axes = matplotlib.pyplot.gca()
+    axes.set_xlabel('velocity in m/s')
+    axes.set_ylabel('Length of packed bed required in m')
+    for j in range(len(X)):
+        matplotlib.pyplot.plot(l[:][j])
+    matplotlib.pyplot.show()
 
+plot_length()
