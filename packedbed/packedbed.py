@@ -24,7 +24,7 @@ kcac = 2.0e-2
 
 # Information about the reaction
 n = 1.                  # order of the reaction w.r.t. reactant conc, 1=first order
-k = 5e-8                # rate constant, unit changes with order of reaction
+k = 5.e-8               # rate constant, unit changes with order of reaction
 
 
 import math
@@ -48,7 +48,7 @@ def overall_effectiveness_factor(internal_effectiveness_factor, kcac, S_a, pelle
     a = k * S_a * pellet_density / kcac
     return internal_effectiveness_factor / (1 + internal_effectiveness_factor * a)   
 
-def packedbed_length(n, u, inlet_gas_conc, ohm, k, S_a, pellet_density, X):
+def calculate_length(n, u, inlet_gas_conc, ohm, k, S_a, pellet_density, X):
     """Return the length of packed bed"""
     if n == 1:
         L = u/(ohm*pellet_density*k*S_a)*math.log(1/(1-X))
@@ -58,7 +58,7 @@ def packedbed_length(n, u, inlet_gas_conc, ohm, k, S_a, pellet_density, X):
         raise ValueError("Currently the solver can only handle 1st and 2nd order reaction")
     return "%e" %L
 
-def packedbed_conversion(n, u, inlet_gas_conc, ohm, k, S_a, pellet_density, L):
+def calculate_conversion(n, u, inlet_gas_conc, ohm, k, S_a, pellet_density, L):
     """Return the conversion achieveable of the packed bed"""
     if n == 1:
         X = 1 - math.exp(L*ohm*pellet_density*k*S_a/u)
@@ -78,43 +78,43 @@ def effective_diffusion_coefficient():
 
 
 ######################## TO FIND LENGTH ########################################
-## Specify the desired conversion
-#X = 0.9
-#
-## Generate results
-#gconc = inlet_gas_conc(R, T, P)
-#phi = thiele_modulus(pellet_density, S_a, gconc, D_e, k, n)
-#etha = internal_effectiveness_factor(n, phi)
-#ohm = overall_effectiveness_factor(etha, kcac, S_a, pellet_density, k)
-#l = packedbed_length(n, u, gconc, ohm, k, S_a, pellet_density, X)
-#print "The following answers are based on pre-determined parameters"
-#print "The inlet concentration is", gconc, "mol/m^3"
-#print "Thiele modulus is", phi
-#print "The internal effectiveness factor is", etha
-#print "The overall effectiveness factor is", ohm
-#print "The length of packed bed is", l, "m"
-#print ""
-#
-## Varying flow rate and conversion to determine the length required
-#n = raw_input("Enter the order of reaction with respect to reactant concentration: ")
-#u = [1.0, 2.0, 3.0, 5.0, 10.0]  # in m/s
-#X = [0.6, 0.7, 0.8, 0.9]        # conversion
-#l = numpy.zeros((len(u), len(X)))
-#for i in range(len(u)):
-    #for j in range(len(X)):
-        #l[i][j] = packedbed_length(float(n), u[i], gconc, ohm, k, S_a, pellet_density, X[j])
-#print "The matrix of length ", l # in m
-#
-## Generating plot
-#def plot_length():
-    #axes = matplotlib.pyplot.gca()
-    #axes.set_xlabel('velocity in m/s')
-    #axes.set_ylabel('Length of packed bed required in m')
-    #for j in range(len(X)):
-        #matplotlib.pyplot.plot(l[:][j])
-    #matplotlib.pyplot.show()
-#
-#plot_length()
+# Specify the desired conversion
+X = 0.9
+
+# Generate results
+gconc = inlet_gas_conc(R, T, P)
+phi = thiele_modulus(pellet_density, S_a, gconc, D_e, k, n)
+etha = internal_effectiveness_factor(n, phi)
+ohm = overall_effectiveness_factor(etha, kcac, S_a, pellet_density, k)
+l = calculate_length(n, u, gconc, ohm, k, S_a, pellet_density, X)
+print "The following answers are based on pre-determined parameters"
+print "The inlet concentration is", gconc, "mol/m^3"
+print "Thiele modulus is", phi
+print "The internal effectiveness factor is", etha
+print "The overall effectiveness factor is", ohm
+print "The length of packed bed is", l, "m"
+print ""
+
+# Varying flow rate and conversion to determine the length required
+n = raw_input("Enter the order of reaction with respect to reactant concentration: ")
+u = [1.0, 2.0, 3.0, 5.0, 10.0]  # in m/s
+X = [0.6, 0.7, 0.8, 0.9]        # conversion
+l = numpy.zeros((len(u), len(X)))
+for i in range(len(u)):
+    for j in range(len(X)):
+        l[i][j] = calculate_length(float(n), u[i], gconc, ohm, k, S_a, pellet_density, X[j])
+print "The matrix of length ", l # in m
+
+# Generating plot
+def plot_length():
+    axes = matplotlib.pyplot.gca()
+    axes.set_xlabel('velocity in m/s')
+    axes.set_ylabel('Length of packed bed required in m')
+    for j in range(len(X)):
+        matplotlib.pyplot.plot(l[:][j])
+    matplotlib.pyplot.show()
+
+plot_length()
 
 
 
@@ -129,7 +129,7 @@ gconc = inlet_gas_conc(R, T, P)
 phi = thiele_modulus(pellet_density, S_a, gconc, D_e, k, n)
 etha = internal_effectiveness_factor(n, phi)
 ohm = overall_effectiveness_factor(etha, kcac, S_a, pellet_density, k)
-X = packedbed_conversion(n, u, gconc, ohm, k, S_a, pellet_density, L)
+X = calculate_conversion(n, u, gconc, ohm, k, S_a, pellet_density, L)
 
 print "The following answers are based on pre-determined parameters"
 print "The inlet concentration is", gconc, "mol/m^3"
@@ -146,5 +146,5 @@ L = [1, 2, 3, 4, 5]        # conversion
 X = numpy.zeros((len(u), len(L)))
 for i in range(len(u)):
     for j in range(len(L)):
-        X[i][j] = packedbed_conversion(float(n), u[i], gconc, ohm, k, S_a, pellet_density, L[j])
+        X[i][j] = calculate_conversion(float(n), u[i], gconc, ohm, k, S_a, pellet_density, L[j])
 print "The matrix of conversion ", X

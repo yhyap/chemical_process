@@ -11,4 +11,4 @@ The packed bed reactor is packed with solid catalysts and the reactions take pla
 
 It comprises computation of Thiele Modulus, internal effectiveness factor and overall effectiveness factor to simulate the reaction with internal diffusion limitation. Rate constant, external mass transfer coefficient, inlet reactant concentration and information about the solid catalysts are required in this program.
 
-Please change the code accordingly.
+Please change the parameters at the top of the code.
